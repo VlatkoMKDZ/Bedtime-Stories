@@ -38,11 +38,28 @@ jobs:
           cache-provider: basic
 
       - name: Build debug APK
-        run: gradle --no-daemon clean assembleDebug --stacktrace --warning-mode all
+        continue-on-error: true
+        run: |
+          mkdir -p build-logs
+          set -o pipefail
+          gradle --no-daemon clean assembleDebug --stacktrace --warning-mode all 2>&1 | tee build-logs/gradle-build.log
+
+      - name: Upload Gradle logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-logs
+          path: build-logs/gradle-build.log
+          if-no-files-found: warn
 
       - name: Upload APK artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bedtime-stories-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          if-no-files-found: ignore
+
+      - name: Fail if APK was not created
+        run: |
+          test -n "$(find app/build/outputs/apk/debug -name '*.apk' 2>/dev/null | head -n 1)"
