@@ -1,22 +1,287 @@
 package com.dreamykids.bedtimestories.ui.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Forward10
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Replay10
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
-import com.dreamykids.bedtimestories.model.*
-import com.dreamykids.bedtimestories.ui.components.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.dreamykids.bedtimestories.ui.components.HeroHeader
+import com.dreamykids.bedtimestories.ui.components.MoonHero
+import com.dreamykids.bedtimestories.ui.components.NightSky
+import com.dreamykids.bedtimestories.ui.components.StoryCard
+import com.dreamykids.bedtimestories.ui.components.TimerChips
 import com.dreamykids.bedtimestories.viewmodel.DreamyViewModel
 
-@Composable fun HomeScreen(vm:DreamyViewModel,onCategory:(String)->Unit,onSettings:()->Unit){ val q by vm.query.collectAsState(); val results by vm.searchResults.collectAsState(); NightSky{ LazyVerticalGrid(GridCells.Adaptive(170.dp),contentPadding=PaddingValues(bottom=100.dp)){ item(span={GridItemSpan(maxLineSpan)}){HeroHeader(onSettings)}; item(span={GridItemSpan(maxLineSpan)}){MoonHero()}; item(span={GridItemSpan(maxLineSpan)}){ OutlinedTextField(value=q,onValueChange=vm::updateQuery,modifier=Modifier.fillMaxWidth().padding(20.dp),leadingIcon={Icon(Icons.Rounded.Search,"Search")},label={Text("Search stories, categories, keywords, narrators")},singleLine=true) }; if(q.isBlank()) items(vm.categories){ CategoryCard(it){onCategory(it.id)} } else items(results, span={GridItemSpan(maxLineSpan)}){ StoryCard(it,false,{vm.toggleFavorite(it.id)},{vm.play(it)}) } } } }
-@Composable fun CategoryScreen(vm:DreamyViewModel,id:String,onStory:(String)->Unit){ val fav by vm.favorites.collectAsState(); val cat=vm.categories.first{it.id==id}; NightSky{ LazyColumn(contentPadding=PaddingValues(vertical=20.dp)){ item{ Text("${cat.emoji} ${cat.title} Stories",fontSize=30.sp,fontWeight=FontWeight.ExtraBold,modifier=Modifier.padding(20.dp)); Text(cat.description,modifier=Modifier.padding(horizontal=20.dp),color=MaterialTheme.colorScheme.onSurface.copy(.75f))}; items(vm.storiesFor(id)){ StoryCard(it,it.id in fav,{vm.toggleFavorite(it.id)},{vm.play(it); onStory(it.id)}) } } } }
-@Composable fun PlayerScreen(vm:DreamyViewModel){ val p by vm.player.collectAsState(); NightSky{ Column(Modifier.fillMaxSize().padding(22.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.SpaceAround){ Text(p.current?.emoji ?: "📚",fontSize=130.sp); Text(p.current?.title ?: "Choose a story",fontSize=28.sp,fontWeight=FontWeight.ExtraBold); Text("Narrated by ${p.current?.narrator ?: "Dreamy Kids"} • ${p.current?.durationMinutes ?: 0} minutes"); LinearProgressIndicator(progress={p.progress},modifier=Modifier.fillMaxWidth().height(10.dp)); Row(verticalAlignment=Alignment.CenterVertically){ IconButton({}){Icon(Icons.Rounded.SkipPrevious,"Previous")}; IconButton({}){Icon(Icons.Rounded.Replay10,"15 sec rewind")}; FilledIconButton({vm.togglePlay()},Modifier.size(76.dp)){Icon(if(p.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,"Play",Modifier.size(42.dp))}; IconButton({}){Icon(Icons.Rounded.Forward10,"15 sec forward")}; IconButton({}){Icon(Icons.Rounded.SkipNext,"Next")} }; Row{ AssistChip({},{Text("❤ Favorite")}); Spacer(Modifier.width(8.dp)); AssistChip({},{Text("${p.speed}x Speed")}); Spacer(Modifier.width(8.dp)); AssistChip({},{Text("Sleep Timer")}) }; TimerChips(p.sleepTimerMinutes){vm.setTimer(it)} } } }
-@Composable fun FavoritesScreen(vm:DreamyViewModel,onStory:(String)->Unit){ val fav by vm.favorites.collectAsState(); NightSky{ LazyColumn{ item{Text("❤️ Favorites",fontSize=30.sp,fontWeight=FontWeight.Bold,modifier=Modifier.padding(20.dp)); Text("Sort by: Recently Played • Favorites • Downloaded",modifier=Modifier.padding(horizontal=20.dp))}; items(vm.categories.flatMap{vm.storiesFor(it.id)}.filter{it.id in fav}){ StoryCard(it,true,{vm.toggleFavorite(it.id)},{vm.play(it);onStory(it.id)}) } } } }
-@Composable fun TimerScreen(vm:DreamyViewModel){ val p by vm.player.collectAsState(); NightSky{ Column(Modifier.padding(24.dp)){Text("🕒 Sleep Timer",fontSize=30.sp,fontWeight=FontWeight.Bold);Text("Fade volume before stopping playback for a peaceful ending."); TimerChips(p.sleepTimerMinutes){vm.setTimer(it)} } } }
-@Composable fun MoreScreen(vm:DreamyViewModel){ val s by vm.settings.collectAsState(); NightSky{ Column(Modifier.padding(24.dp)){Text("⚙ More",fontSize=30.sp,fontWeight=FontWeight.Bold); listOf("Dark mode" to s.darkMode,"Auto play next story" to s.autoPlayNext,"Remember last story" to s.rememberLastStory,"Notifications" to s.notifications).forEach{ Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text(it.first,Modifier.weight(1f)); Switch(it.second,{})} }; Text("About • Privacy Policy • Premium ready architecture",modifier=Modifier.padding(top=20.dp)) } } }
+@Composable
+fun HomeScreen(
+    vm: DreamyViewModel,
+    onCategory: (String) -> Unit,
+    onSettings: () -> Unit
+) {
+    val query by vm.query.collectAsState()
+    val results by vm.searchResults.collectAsState()
+
+    NightSky {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(170.dp),
+            contentPadding = PaddingValues(bottom = 100.dp)
+        ) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                HeroHeader(onSettings = onSettings)
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                MoonHero()
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = vm::updateQuery,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = "Search") },
+                    label = { Text("Search stories, categories, keywords, narrators") },
+                    singleLine = true
+                )
+            }
+
+            if (query.isBlank()) {
+                items(vm.categories) { category ->
+                    com.dreamykids.bedtimestories.ui.components.CategoryCard(category) {
+                        onCategory(category.id)
+                    }
+                }
+            } else {
+                items(
+                    items = results,
+                    span = { GridItemSpan(maxLineSpan) }
+                ) { story ->
+                    StoryCard(
+                        story = story,
+                        isFavorite = false,
+                        onFavorite = { vm.toggleFavorite(story.id) },
+                        onPlay = { vm.play(story) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryScreen(
+    vm: DreamyViewModel,
+    id: String,
+    onStory: (String) -> Unit
+) {
+    val favorites by vm.favorites.collectAsState()
+    val category = vm.categories.first { item -> item.id == id }
+
+    NightSky {
+        LazyColumn(contentPadding = PaddingValues(vertical = 20.dp)) {
+            item {
+                Text(
+                    text = "${category.emoji} ${category.title} Stories",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(20.dp)
+                )
+                Text(
+                    text = category.description,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                )
+            }
+            items(vm.storiesFor(id)) { story ->
+                StoryCard(
+                    story = story,
+                    isFavorite = story.id in favorites,
+                    onFavorite = { vm.toggleFavorite(story.id) },
+                    onPlay = {
+                        vm.play(story)
+                        onStory(story.id)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PlayerScreen(vm: DreamyViewModel) {
+    val player by vm.player.collectAsState()
+
+    NightSky {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceAround
+        ) {
+            Text(text = player.current?.emoji ?: "📚", fontSize = 130.sp)
+            Text(
+                text = player.current?.title ?: "Choose a story",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                text = "Narrated by ${player.current?.narrator ?: "Dreamy Kids"} • " +
+                    "${player.current?.durationMinutes ?: 0} minutes"
+            )
+            LinearProgressIndicator(
+                progress = { player.progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = {}) { Icon(Icons.Rounded.SkipPrevious, "Previous") }
+                IconButton(onClick = {}) { Icon(Icons.Rounded.Replay10, "10 sec rewind") }
+                FilledIconButton(
+                    onClick = { vm.togglePlay() },
+                    modifier = Modifier.size(76.dp)
+                ) {
+                    Icon(
+                        imageVector = if (player.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = "Play",
+                        modifier = Modifier.size(42.dp)
+                    )
+                }
+                IconButton(onClick = {}) { Icon(Icons.Rounded.Forward10, "10 sec forward") }
+                IconButton(onClick = {}) { Icon(Icons.Rounded.SkipNext, "Next") }
+            }
+            Row {
+                AssistChip(onClick = {}, label = { Text("❤ Favorite") })
+                Spacer(Modifier.width(8.dp))
+                AssistChip(onClick = {}, label = { Text("${player.speed}x Speed") })
+                Spacer(Modifier.width(8.dp))
+                AssistChip(onClick = {}, label = { Text("Sleep Timer") })
+            }
+            TimerChips(selected = player.sleepTimerMinutes, onSelect = vm::setTimer)
+        }
+    }
+}
+
+@Composable
+fun FavoritesScreen(
+    vm: DreamyViewModel,
+    onStory: (String) -> Unit
+) {
+    val favorites by vm.favorites.collectAsState()
+    val favoriteStories = vm.categories
+        .flatMap { category -> vm.storiesFor(category.id) }
+        .filter { story -> story.id in favorites }
+
+    NightSky {
+        LazyColumn {
+            item {
+                Text(
+                    text = "❤️ Favorites",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(20.dp)
+                )
+                Text(
+                    text = "Sort by: Recently Played • Favorites • Downloaded",
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+            items(favoriteStories) { story ->
+                StoryCard(
+                    story = story,
+                    isFavorite = true,
+                    onFavorite = { vm.toggleFavorite(story.id) },
+                    onPlay = {
+                        vm.play(story)
+                        onStory(story.id)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TimerScreen(vm: DreamyViewModel) {
+    val player by vm.player.collectAsState()
+
+    NightSky {
+        Column(Modifier.padding(24.dp)) {
+            Text("🕒 Sleep Timer", fontSize = 30.sp, fontWeight = FontWeight.Bold)
+            Text("Fade volume before stopping playback for a peaceful ending.")
+            TimerChips(selected = player.sleepTimerMinutes, onSelect = vm::setTimer)
+        }
+    }
+}
+
+@Composable
+fun MoreScreen(vm: DreamyViewModel) {
+    val settings by vm.settings.collectAsState()
+    val rows = listOf(
+        "Dark mode" to settings.darkMode,
+        "Auto play next story" to settings.autoPlayNext,
+        "Remember last story" to settings.rememberLastStory,
+        "Notifications" to settings.notifications
+    )
+
+    NightSky {
+        Column(Modifier.padding(24.dp)) {
+            Text("⚙ More", fontSize = 30.sp, fontWeight = FontWeight.Bold)
+            rows.forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(row.first, Modifier.weight(1f))
+                    Switch(
+                        checked = row.second,
+                        onCheckedChange = null
+                    )
+                }
+            }
+            Text(
+                text = "About • Privacy Policy • Premium ready architecture",
+                modifier = Modifier.padding(top = 20.dp)
+            )
+        }
+    }
+}
