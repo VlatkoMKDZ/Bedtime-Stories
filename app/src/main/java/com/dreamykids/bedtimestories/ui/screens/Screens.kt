@@ -1,5 +1,6 @@
 package com.dreamykids.bedtimestories.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,6 +34,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +53,11 @@ import com.dreamykids.bedtimestories.ui.components.MoonHero
 import com.dreamykids.bedtimestories.ui.components.NightSky
 import com.dreamykids.bedtimestories.ui.components.StoryCard
 import com.dreamykids.bedtimestories.ui.components.TimerChips
+import com.dreamykids.bedtimestories.ui.theme.CreamSurface
+import com.dreamykids.bedtimestories.ui.theme.DarkerOrange
+import com.dreamykids.bedtimestories.ui.theme.DarkBrown
+import com.dreamykids.bedtimestories.ui.theme.MediumBrown
+import com.dreamykids.bedtimestories.ui.theme.WarmBorder
 import com.dreamykids.bedtimestories.viewmodel.DreamyViewModel
 
 @Composable
@@ -192,7 +202,7 @@ fun PlayerScreen(vm: DreamyViewModel) {
             Row {
                 AssistChip(onClick = {}, label = { Text("❤ Favorite") })
                 Spacer(Modifier.width(8.dp))
-                AssistChip(onClick = {}, label = { Text("${player.speed}x Speed") })
+                AssistChip(onClick = { vm.setSpeed(nextSpeed(player.speed)) }, label = { Text("${player.speed}x Speed") })
                 Spacer(Modifier.width(8.dp))
                 AssistChip(onClick = {}, label = { Text("Sleep Timer") })
             }
@@ -254,34 +264,77 @@ fun TimerScreen(vm: DreamyViewModel) {
 }
 
 @Composable
-fun MoreScreen(vm: DreamyViewModel) {
+fun MoreScreen(vm: DreamyViewModel, onAbout: () -> Unit, onPrivacy: () -> Unit) {
     val settings by vm.settings.collectAsState()
-    val rows = listOf(
-        "Dark mode" to settings.darkMode,
-        "Auto play next story" to settings.autoPlayNext,
-        "Remember last story" to settings.rememberLastStory,
-        "Notifications" to settings.notifications
-    )
+    val speeds = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
 
     NightSky {
-        Column(Modifier.padding(24.dp)) {
-            Text("⚙ More", fontSize = 30.sp, fontWeight = FontWeight.Bold)
-            rows.forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(row.first, Modifier.weight(1f))
-                    Switch(
-                        checked = row.second,
-                        onCheckedChange = null
-                    )
+        LazyColumn(contentPadding = PaddingValues(24.dp)) {
+            item {
+                Text("More", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = DarkBrown)
+                SettingRow("Dark Mode", settings.darkMode) { vm.updateSettings { it.copy(darkMode = !settings.darkMode) } }
+                SettingRow("Remember Last Story", settings.rememberLastStory) { vm.updateSettings { it.copy(rememberLastStory = !settings.rememberLastStory) } }
+                SettingRow("Notifications", settings.notifications) { vm.updateSettings { it.copy(notifications = !settings.notifications) } }
+                Text("Playback Speed", modifier = Modifier.padding(top = 18.dp), fontWeight = FontWeight.Bold, color = DarkBrown)
+                Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())) {
+                    speeds.forEach { speed ->
+                        FilterChip(
+                            selected = settings.playbackSpeed == speed,
+                            onClick = { vm.setSpeed(speed) },
+                            label = { Text("${speed}x") },
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
                 }
+                Button(onClick = onAbout, modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) { Text("About Dreamy Bedtime Stories") }
+                Button(onClick = onPrivacy, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Privacy Policy") }
             }
-            Text(
-                text = "About • Privacy Policy • Premium ready architecture",
-                modifier = Modifier.padding(top = 20.dp)
-            )
         }
     }
+}
+
+@Composable
+private fun SettingRow(label: String, checked: Boolean, onToggle: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f), color = DarkBrown)
+        Switch(checked = checked, onCheckedChange = { onToggle() })
+    }
+}
+
+@Composable
+fun AboutScreen() {
+    NightSky {
+        Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Card(colors = CardDefaults.cardColors(CreamSurface), border = androidx.compose.foundation.BorderStroke(1.dp, WarmBorder)) {
+                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Dreamy Bedtime Stories", fontWeight = FontWeight.Bold, color = DarkBrown)
+                    Text("Version 1.0.0", color = DarkBrown)
+                    Spacer(Modifier.height(18.dp))
+                    Text("Dreamy Bedtime Stories is a magical app for kids, created with love by Parent101.net to make bedtime peaceful, fun, and memorable.", color = DarkBrown)
+                    Spacer(Modifier.height(18.dp))
+                    Text("A product from Parent101.net ❤", color = DarkerOrange, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PrivacyScreen() {
+    NightSky {
+        Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Card(colors = CardDefaults.cardColors(CreamSurface), border = androidx.compose.foundation.BorderStroke(1.dp, WarmBorder)) {
+                Column(Modifier.padding(24.dp)) {
+                    Text("Privacy Policy", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = DarkBrown)
+                    Text("Your privacy is important to us.\nWe do not collect any personal information from children.\nThis app does not require registration and does not collect or share your data.\nWe may use anonymous usage data to improve the app experience.\nThis app is safe, COPPA compliant, and designed for children and families.", color = MediumBrown, modifier = Modifier.padding(top = 16.dp))
+                    Text("Learn more at Parent101.net/privacy", color = DarkerOrange, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
+                }
+            }
+        }
+    }
+}
+
+private fun nextSpeed(current: Float): Float {
+    val speeds = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+    return speeds[(speeds.indexOf(current).takeIf { it >= 0 } ?: 1).plus(1) % speeds.size]
 }
